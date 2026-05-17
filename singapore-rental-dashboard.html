@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Singapore Rental Tracker — Bedok Reservoir &amp; East</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #fafaf9;
+    color: #1f2937;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 22px; margin: 0 0 4px; color: #0f172a; }
+  h2 { font-size: 17px; margin: 28px 0 12px; color: #0f172a; }
+  h3 { font-size: 14px; margin: 0 0 6px; color: #334155; }
+  .sub { color: #64748b; font-size: 13px; margin-bottom: 20px; }
+  .pill {
+    display: inline-block; padding: 3px 9px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  }
+  .pill.ok { background: #dcfce7; color: #15803d; }
+  .pill.warn { background: #fef3c7; color: #a16207; }
+  .pill.bad { background: #fee2e2; color: #b91c1c; }
+  .pill.info { background: #e0e7ff; color: #3730a3; }
+  .pill.neutral { background: #e5e7eb; color: #374151; }
+
+  .tabs {
+    display: flex; gap: 4px; border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 18px; overflow-x: auto;
+  }
+  .tab {
+    padding: 10px 16px; cursor: pointer; border: none; background: none;
+    font-size: 14px; color: #64748b; border-bottom: 2px solid transparent;
+    white-space: nowrap;
+  }
+  .tab.active { color: #0f172a; border-bottom-color: #0f172a; font-weight: 600; }
+  .tab:hover { color: #0f172a; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Criteria card */
+  .criteria {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+    padding: 16px 18px; margin-bottom: 18px;
+  }
+  .criteria-row {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px 16px; font-size: 13px;
+  }
+  .criteria-row strong { color: #0f172a; }
+
+  /* Condo table */
+  .table-wrap { overflow-x: auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; min-width: 1000px; font-size: 13px; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+  th { background: #f8fafc; font-weight: 600; color: #334155; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafbfc; }
+  .condo-name { font-weight: 600; color: #0f172a; }
+  .condo-meta { color: #64748b; font-size: 11px; margin-top: 2px; }
+  td .row-pills { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+  .tier { font-weight: 700; font-size: 13px; }
+  .tier.A { color: #15803d; }
+  .tier.B { color: #a16207; }
+  .tier.C { color: #b91c1c; }
+
+  /* Quick search */
+  .grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+  }
+  .card {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .card a { color: #1d4ed8; text-decoration: none; font-size: 13px; }
+  .card a:hover { text-decoration: underline; }
+  .card ul { padding-left: 18px; margin: 6px 0; }
+  .card li { margin: 4px 0; font-size: 13px; }
+
+  /* Listing tracker */
+  .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  button {
+    padding: 8px 14px; border-radius: 8px; border: 1px solid #d1d5db;
+    background: #fff; cursor: pointer; font-size: 13px; color: #0f172a;
+  }
+  button:hover { background: #f1f5f9; }
+  button.primary { background: #0f172a; color: #fff; border-color: #0f172a; }
+  button.primary:hover { background: #1e293b; }
+  button.danger { color: #b91c1c; border-color: #fecaca; }
+  button.danger:hover { background: #fef2f2; }
+
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4);
+    display: none; align-items: center; justify-content: center; z-index: 100;
+    padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: #fff; border-radius: 14px; padding: 22px;
+    max-width: 580px; width: 100%; max-height: 90vh; overflow-y: auto;
+  }
+  .modal h3 { font-size: 16px; margin: 0 0 14px; }
+  .form-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px;
+  }
+  .form-grid label { display: flex; flex-direction: column; font-size: 12px; color: #64748b; }
+  .form-grid label.full { grid-column: 1 / -1; }
+  .form-grid input[type="text"], .form-grid input[type="number"], .form-grid select, .form-grid textarea {
+    margin-top: 4px; padding: 7px 9px; border: 1px solid #d1d5db; border-radius: 6px;
+    font-size: 13px; font-family: inherit;
+  }
+  .form-grid textarea { resize: vertical; min-height: 60px; }
+  .check-row { display: flex; gap: 14px; flex-wrap: wrap; grid-column: 1 / -1; font-size: 13px; }
+  .check-row label { flex-direction: row; align-items: center; gap: 5px; color: #0f172a; font-size: 13px; }
+
+  .listings-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+  }
+  .listing-card {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+    padding: 14px 16px; display: flex; flex-direction: column; gap: 6px;
+  }
+  .listing-card .top { display: flex; justify-content: space-between; align-items: start; gap: 8px; }
+  .listing-card .score {
+    font-size: 20px; font-weight: 700; color: #0f172a;
+    background: #f1f5f9; padding: 4px 10px; border-radius: 8px;
+    min-width: 50px; text-align: center;
+  }
+  .score.high { background: #dcfce7; color: #15803d; }
+  .score.mid { background: #fef3c7; color: #a16207; }
+  .score.low { background: #fee2e2; color: #b91c1c; }
+  .listing-card .meta { font-size: 12px; color: #64748b; }
+  .listing-card .pills-row { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+  .listing-card .actions { display: flex; gap: 6px; margin-top: 6px; }
+  .listing-card .notes { font-size: 12px; color: #475569; font-style: italic; margin-top: 4px; }
+  .listing-card .breakdown { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+  .empty {
+    text-align: center; padding: 48px 20px; color: #94a3b8;
+    border: 2px dashed #e5e7eb; border-radius: 12px;
+  }
+
+  .notes-area {
+    width: 100%; min-height: 240px; padding: 14px; border: 1px solid #e5e7eb;
+    border-radius: 12px; font-family: inherit; font-size: 13px; line-height: 1.6;
+    resize: vertical;
+  }
+
+  .legend { font-size: 11px; color: #94a3b8; margin-top: 8px; }
+  details { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; }
+  details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+  details[open] summary { margin-bottom: 8px; }
+
+  .stat-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+  .stat {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
+    padding: 10px 14px; min-width: 110px;
+  }
+  .stat .v { font-size: 20px; font-weight: 700; color: #0f172a; }
+  .stat .l { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* PRINT / PDF EXPORT — show all tabs, fit table on A4, hide interactive bits */
+  @media print {
+    @page { size: A4 landscape; margin: 12mm; }
+    body { background: #fff; font-size: 10pt; }
+    .wrap { max-width: none; padding: 0; }
+    .tabs { display: none; }
+    .panel { display: block !important; page-break-before: always; }
+    #panel-condos { page-break-before: avoid; }
+    h1 { font-size: 18pt; }
+    h2 { font-size: 13pt; margin-top: 18pt; }
+    h3 { font-size: 11pt; }
+    .toolbar, button, .modal-overlay { display: none !important; }
+    .empty { display: none; }
+    .table-wrap { overflow: visible; border: none; }
+    table { min-width: 0; width: 100%; font-size: 8.5pt; }
+    th, td { padding: 5px 6px; }
+    th { font-size: 8pt; }
+    .condo-name { font-size: 9pt; }
+    .condo-meta { font-size: 7.5pt; }
+    details { page-break-inside: avoid; }
+    details > summary { list-style: none; }
+    details > *:not(summary) { display: block !important; }
+    .card { page-break-inside: avoid; }
+    .notes-area { border: 1px solid #ccc; min-height: 80pt; }
+    a { color: #1d4ed8; }
+    a[href]:after { content: ""; } /* don't print URLs after links */
+    .listings-grid { display: block; }
+    .listing-card { page-break-inside: avoid; border: 1px solid #ccc; margin-bottom: 8pt; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Singapore Rental Tracker — Bedok Reservoir &amp; East</h1>
+  <div class="sub">Personalised dashboard for Rajul &amp; Poonam · Target move-in 1 Aug 2026</div>
+
+  <div class="criteria">
+    <h3 style="margin-bottom:10px;">Your criteria <span class="pill info" style="margin-left:6px;">edit in source if needed</span></h3>
+    <div class="criteria-row">
+      <div><strong>Family:</strong> 2 adults + 11yo (Aadya)</div>
+      <div><strong>Lease:</strong> 2 years from 1 Aug 2026</div>
+      <div><strong>Budget:</strong> ≤ S$6,000/mo (prefer lower)</div>
+      <div><strong>Bedrooms:</strong> 3BR + 2BA min</div>
+      <div><strong>Helper's room:</strong> with attached W/C</div>
+      <div><strong>Min size:</strong> 1,350 sqft</div>
+      <div><strong>School:</strong> UWC East (1 Tampines St 73)</div>
+      <div><strong>Office:</strong> 71 Robinson Rd → Telok Ayer MRT</div>
+      <div><strong>Rajul's MRT walk:</strong> 0–8 min (DTL / EWL / TEL)</div>
+      <div><strong>Aadya's school commute:</strong> school bus or direct bus only — <em>no MRT+bus transfer</em>, ≤40 min OK</div>
+      <div><strong>Furnishing:</strong> Unfurnished (shipping from Mumbai)</div>
+      <div><strong>Nice-to-have:</strong> piped gas, AC, fans, balcony, view</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="condos">🏙️ Condo shortlist</button>
+    <button class="tab" data-tab="listings">📋 Tracked listings</button>
+    <button class="tab" data-tab="sources">🔗 Daily sources</button>
+    <button class="tab" data-tab="commute">🚇 Commute reality check</button>
+    <button class="tab" data-tab="notes">📝 Notes</button>
+  </div>
+
+  <!-- CONDOS PANEL -->
+  <div class="panel active" id="panel-condos">
+    <p style="font-size:13px; color:#475569;">
+      Ranked by fit to your criteria. Tier A = strong match; Tier B = borderline on MRT walk or rent; Tier C = stretch. Rents are 3BR ranges from recent listings (May 2026).
+      <strong>School-bus assumption:</strong> UWCSEA East runs buses to most East-side estates; treat the "MRT-only" commute as a worst case.
+    </p>
+
+    <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Condo</th>
+          <th>Tier</th>
+          <th>3BR size</th>
+          <th>3BR rent (recent)</th>
+          <th>MRT walk</th>
+          <th>Rajul to Telok Ayer<br><span style="font-weight:400;text-transform:none;color:#94a3b8;">(MRT, door-to-door)</span></th>
+          <th>Aadya to UWC East<br><span style="font-weight:400;text-transform:none;color:#94a3b8;">(school bus / direct bus)</span></th>
+          <th>Town gas</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <div class="condo-name">The Clearwater</div>
+            <div class="condo-meta">2002 · 420 units · D16</div>
+          </td>
+          <td><span class="tier A">A</span></td>
+          <td>1,195–1,905 sqft</td>
+          <td>S$4.5k–6k<br><span class="condo-meta">avg ~S$4.4k</span></td>
+          <td>~5 min<br><span class="condo-meta">Bedok Reservoir DTL</span></td>
+          <td>~26 min</td>
+          <td>~25–30 min<br><span class="condo-meta">school bus</span></td>
+          <td><span class="pill ok">Yes</span></td>
+          <td>Closest to MRT in cluster. Older but well-maintained. Helper's room standard in 3BR.</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="condo-name">Aquarius by the Park</div>
+            <div class="condo-meta">2002 · 720 units · D16</div>
+          </td>
+          <td><span class="tier A">A</span></td>
+          <td>1,098–2,110 sqft</td>
+          <td>S$4.5k–6k<br><span class="condo-meta">listings ~S$6k</span></td>
+          <td>~7–9 min<br><span class="condo-meta">Bedok Reservoir DTL</span></td>
+          <td>~28 min</td>
+          <td>~25–30 min<br><span class="condo-meta">school bus</span></td>
+          <td><span class="pill ok">Yes</span></td>
+          <td>Faces the reservoir. Large grounds. Some 3BR units &lt;1350 sqft — confirm size before viewing.</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="condo-name">Baywater</div>
+            <div class="condo-meta">2006 · 232 units · D16</div>
+          </td>
+          <td><span class="tier B">B</span></td>
+          <td>1,270–2,519 sqft</td>
+          <td>S$4.3k–6k<br><span class="condo-meta">avg ~S$4.3k</span></td>
+          <td>~10 min<br><span class="condo-meta">Bedok Reservoir DTL</span></td>
+          <td>~30 min</td>
+          <td>~25–30 min<br><span class="condo-meta">school bus</span></td>
+          <td><span class="pill ok">Yes</span></td>
+          <td>Larger units, good value. MRT walk borderline on your 8-min rule.</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="condo-name">Waterfront Waves</div>
+            <div class="condo-meta">2010 · 405 units · D16</div>
+          </td>
+          <td><span class="tier B">B</span></td>
+          <td>1,200–1,600 sqft</td>
+          <td>S$5.5k–7.5k</td>
+          <td>~12 min<br><span class="condo-meta">Bedok Reservoir DTL</span></td>
+          <td>~33 min</td>
+          <td>~28–32 min<br><span class="condo-meta">school bus</span></td>
+          <td><span class="pill warn">Mostly no</span></td>
+          <td>Reservoir-facing, premium feel. Newer = often induction-only. Rent at top of budget.</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="condo-name">Waterfront Isle</div>
+            <div class="condo-meta">2015 · 561 units · D16</div>
+          </td>
+          <td><span class="tier B">B</span></td>
+          <td>1,300–1,700 sqft</td>
+          <td>S$5k–6.5k</td>
+          <td>~10–12 min<br><span class="condo-meta">Bedok Reservoir DTL</span></td>
+          <td>~32 min</td>
+          <td>~28–32 min<br><span class="condo-meta">school bus</span></td>
+          <td><span class="pill bad">Likely no</span></td>
+          <td>Newer, better facilities. Most units induction-only. MRT walk borderline.</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="condo-name">Waterfront Key</div>
+            <div class="condo-meta">2011 · 437 units · D16</div>
+          </td>
+          <td><span class="tier B">B</span></td>
+          <td>1,200–1,600 sqft</td>
+          <td>S$5k–6.5k</td>
+          <td>~10–12 min<br><span class="condo-meta">Bedok Reservoir DTL</span></td>
+          <td>~32 min</td>
+          <td>~28–32 min<br><span class="condo-meta">school bus</span></td>
+          <td><span class="pill warn">Mixed</span></td>
+          <td>Similar profile to Waterfront Isle. Check individual unit for gas.</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="condo-name">Waterfront Gold</div>
+            <div class="condo-meta">2013 · 361 units · D16</div>
+          </td>
+          <td><span class="tier B">B</span></td>
+          <td>1,300–1,700 sqft</td>
+          <td>S$5k–6.5k</td>
+          <td>~12 min<br><span class="condo-meta">Bedok Reservoir DTL</span></td>
+          <td>~33 min</td>
+          <td>~28–32 min<br><span class="condo-meta">school bus</span></td>
+          <td><span class="pill warn">Mixed</span></td>
+          <td>Newer Waterfront cluster sibling. Verify town gas per unit.</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="condo-name">Costa Del Sol</div>
+            <div class="condo-meta">2004 · 906 units · D16 Bayshore</div>
+          </td>
+          <td><span class="tier B">B</span></td>
+          <td>1,227–1,755 sqft</td>
+          <td>S$5.3k–7.6k</td>
+          <td>~8–12 min<br><span class="condo-meta">Bayshore TEL · Tanah Merah EWL</span></td>
+          <td>~22 min</td>
+          <td>~22–28 min<br><span class="condo-meta">school bus</span></td>
+          <td><span class="pill ok">Yes</span></td>
+          <td>Excellent for your office (TEL + EWL both nearby). Closer to UWC East. Top of budget.</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="condo-name">The Tropica</div>
+            <div class="condo-meta">1998 · 612 units · D18 Tampines</div>
+          </td>
+          <td><span class="tier C">C</span></td>
+          <td>1,200–1,500 sqft</td>
+          <td>S$4.5k–5.5k</td>
+          <td>~15 min<br><span class="condo-meta">Bedok Reservoir DTL</span></td>
+          <td>~38 min</td>
+          <td>~12–18 min<br><span class="condo-meta">direct bus or school bus</span></td>
+          <td><span class="pill ok">Yes</span></td>
+          <td>Closer to UWC East. Older. Fails your 8-min MRT walk rule strictly.</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="condo-name">Tropical Spring</div>
+            <div class="condo-meta">2001 · 184 units · D18 Tampines</div>
+          </td>
+          <td><span class="tier C">C</span></td>
+          <td>1,200–1,500 sqft</td>
+          <td>S$4.5k–5.5k</td>
+          <td>~18 min<br><span class="condo-meta">no MRT in walking range</span></td>
+          <td>~40 min</td>
+          <td>~10–15 min<br><span class="condo-meta">direct bus or school bus</span></td>
+          <td><span class="pill ok">Yes</span></td>
+          <td>Closest to UWC East but fails MRT-walk criterion.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="legend">
+      Sources: PropertyGuru, 99.co, SRX, EdgeProp (May 2026). Times are estimates — verify with Google Maps at the school bell time.
+      Town-gas status is the typical default for the development; <strong>always confirm with the agent</strong> as some units have been converted.
+    </div>
+
+    <h2>Honest take from the data</h2>
+    <details>
+      <summary>Why I ranked these the way I did</summary>
+      <ul style="font-size:13px; color:#334155;">
+        <li><strong>The Clearwater and Aquarius by the Park</strong> are the best fit to your stated criteria: under 8 min to Bedok Reservoir MRT, town gas, helper's rooms in most 3BR, and 3BR rents that actually have units listed under S$6k.</li>
+        <li><strong>Costa Del Sol is the dark horse.</strong> It's on the Thomson-East Coast Line (your brown line) AND walking distance to Tanah Merah (EWL/green) — a real two-line advantage for your office commute. The catch is rent: most 3BR listings start at S$5.5k+.</li>
+        <li><strong>Waterfront Waves / Key / Isle / Gold</strong> all sit ~10–12 min from the MRT — they fail a strict 8-min walk reading. They're worth viewing only if a specific unit ticks every other box.</li>
+        <li><strong>Aadya's commute = school bus, full stop.</strong> No MRT-then-bus transfers for an 11-year-old. UWCSEA East's bus catchment covers all East-side estates on this list, but routes change yearly — email <em>uwcseaeast@uwcsea.edu.sg</em> with your shortlist to confirm pickup before signing anywhere.</li>
+        <li><strong>What I'd skip:</strong> Pasir Ris / Simei don't help — they save 5–10 min for Aadya (which the school bus already handles) but add 10–15 min to your office commute and don't reduce rent meaningfully.</li>
+      </ul>
+    </details>
+  </div>
+
+  <!-- LISTINGS PANEL -->
+  <div class="panel" id="panel-listings">
+    <div class="stat-row" id="stats"></div>
+
+    <div class="toolbar">
+      <button class="primary" id="add-listing">+ Add a listing</button>
+      <button id="export">📤 Export to JSON (share with Poonam)</button>
+      <button id="import">📥 Import JSON from Poonam</button>
+      <input type="file" id="import-file" accept=".json" style="display:none;">
+      <button class="danger" id="clear-all">🗑️ Clear all</button>
+    </div>
+
+    <div id="listings-container"></div>
+    <div class="legend">Data is saved locally in your browser. To sync with Poonam: export → email the file → she imports.</div>
+  </div>
+
+  <!-- SOURCES PANEL -->
+  <div class="panel" id="panel-sources">
+    <p style="font-size:13px; color:#475569;">
+      The most reliable way to see new listings the moment they're posted is to set up <strong>saved-search email alerts</strong> on each portal. Below are pre-filled search links — open each, click "Save search" or the bell icon, and use the exact filters listed.
+    </p>
+
+    <h2>Pre-filled search links</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>PropertyGuru</h3>
+        <ul>
+          <li><a href="https://www.propertyguru.com.sg/property-for-rent?market=residential&property_type=N&listing_type=rent&_property_type_code%5B%5D=CONDO&_property_type_code%5B%5D=APT&search=true&beds%5B%5D=3&maxprice=6000&minsize=1350&freetext=Bedok+Reservoir" target="_blank" rel="noopener">Bedok Reservoir · 3BR · ≤$6k · ≥1350 sqft</a></li>
+          <li><a href="https://www.propertyguru.com.sg/property-for-rent?market=residential&listing_type=rent&_property_type_code%5B%5D=CONDO&beds%5B%5D=3&maxprice=6500&minsize=1300&freetext=Bayshore" target="_blank" rel="noopener">Bayshore (Costa Del Sol) · 3BR · ≤$6.5k</a></li>
+        </ul>
+        <p style="font-size:12px;color:#64748b;margin:6px 0 0;">Filters to apply: District 16, Furnishing = Unfurnished/Partial, MRT &lt; 8 min.</p>
+      </div>
+
+      <div class="card">
+        <h3>99.co</h3>
+        <ul>
+          <li><a href="https://www.99.co/singapore/rent?query_type=district&query_ids=district_16&listing_type=rent&main_category=residential&property_segments=residential&property_types=condo&rental_types=unit&price_min=0&price_max=6000&bedrooms_min=3&bedrooms_max=3" target="_blank" rel="noopener">District 16 · 3BR · ≤$6k</a></li>
+          <li><a href="https://www.99.co/singapore/rent?query_type=mrt&query_ids=DT30&listing_type=rent&property_types=condo&price_max=6000&bedrooms_min=3" target="_blank" rel="noopener">Near Bedok Reservoir MRT</a></li>
+        </ul>
+        <p style="font-size:12px;color:#64748b;margin:6px 0 0;">Set "MRT distance" filter to ≤ 8 min walk in the sidebar.</p>
+      </div>
+
+      <div class="card">
+        <h3>SRX</h3>
+        <ul>
+          <li><a href="https://www.srx.com.sg/condo-for-rent?district=16&bedrooms=3&maxprice=6000&minsqft=1350" target="_blank" rel="noopener">D16 condos · 3BR · ≤$6k · ≥1350 sqft</a></li>
+        </ul>
+        <p style="font-size:12px;color:#64748b;margin:6px 0 0;">SRX has the cleanest "average X-Value rental" benchmarks if you want to know if a listing is over-priced.</p>
+      </div>
+
+      <div class="card">
+        <h3>EdgeProp</h3>
+        <ul>
+          <li><a href="https://www.edgeprop.sg/buy-rent/rent?propertyType=condo&district=D16&bedrooms=3&maxPrice=6000" target="_blank" rel="noopener">D16 condo rentals · 3BR · ≤$6k</a></li>
+        </ul>
+        <p style="font-size:12px;color:#64748b;margin:6px 0 0;">Best for historical rental transaction data per condo.</p>
+      </div>
+    </div>
+
+    <h2>How to set up daily email alerts</h2>
+    <details open>
+      <summary>PropertyGuru saved search (~2 min)</summary>
+      <ol style="font-size:13px; color:#334155;">
+        <li>Open the PropertyGuru link above.</li>
+        <li>Sign in (or create a free account with your email).</li>
+        <li>Once filters are applied, click "Save search" at the top of results.</li>
+        <li>Toggle "Email me new listings" → daily.</li>
+        <li>Repeat with the Bayshore search if you want both.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>99.co saved search</summary>
+      <ol style="font-size:13px; color:#334155;">
+        <li>Open the 99.co link, refine in the sidebar (especially "Walking distance to MRT" ≤ 8 min).</li>
+        <li>Click the bell icon at the top → confirm email frequency.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>SRX saved search</summary>
+      <ol style="font-size:13px; color:#334155;">
+        <li>Open the SRX link, click "Save search" (you'll need a free account).</li>
+        <li>Choose "Daily" email digest.</li>
+      </ol>
+    </details>
+
+    <h2>Direct agent contacts (free, no listing portal needed)</h2>
+    <p style="font-size:13px; color:#475569;">
+      Once a daily digest is flowing, the best agents in this cluster tend to repeat. Note their names and call them directly — many landlords sign with the same agent every renewal, so the agent often has off-market units. WhatsApp is the standard channel.
+    </p>
+  </div>
+
+  <!-- COMMUTE PANEL -->
+  <div class="panel" id="panel-commute">
+    <h2>Office: 71 Robinson Road (Telok Ayer MRT)</h2>
+    <p style="font-size:13px; color:#334155;">
+      Telok Ayer is on the Downtown Line (blue). From Bedok Reservoir MRT it's a direct ride of about <strong>21 minutes</strong>, no transfers. Walk to office is ~3 min.
+    </p>
+    <ul style="font-size:13px; color:#334155;">
+      <li>Bedok Reservoir cluster → Telok Ayer = ~26–33 min door-to-door (walk + MRT + walk)</li>
+      <li>Costa Del Sol (Bayshore TEL) → Marina Bay TEL → walk, or → Tanah Merah → Telok Ayer = ~22–28 min</li>
+      <li>Tampines/Pasir Ris → Telok Ayer = ~35–40 min (worse)</li>
+    </ul>
+
+    <h2>Aadya's commute: UWC East, 1 Tampines St 73</h2>
+    <p style="font-size:13px; color:#334155;">
+      <strong>Rule:</strong> school bus or single direct bus only. No MRT+bus transfers for an 11-year-old. 40 min door-to-door is the ceiling.
+    </p>
+    <p style="font-size:13px; color:#334155;">
+      UWC East is not within walking distance of any MRT, so the school bus is the realistic answer for every condo on this list. Pickup is at or near your condo gate, supervised, ~20–32 min door-to-door depending on route.
+    </p>
+    <p style="font-size:13px; color:#334155;">
+      For the Bedok Reservoir cluster (Clearwater, Aquarius, Baywater, Waterfront *) the school bus is typically 25–32 min. For Costa Del Sol (Bayshore), ~22–28 min. For Tampines condos (Tropica, Tropical Spring), it's 10–18 min and a direct public bus (e.g. 34, 69, 293) is also viable.
+    </p>
+    <p style="font-size:13px; color:#334155;">
+      <strong>Action item (do this before signing anything):</strong> email <em>uwcseaeast@uwcsea.edu.sg</em> with your shortlist and ask which condos are on existing bus routes for next academic year. This single answer should drive your final pick.
+    </p>
+
+    <h2>Sanity-check any specific address</h2>
+    <p style="font-size:13px; color:#334155;">
+      Use Google Maps with:
+      <br>• Origin: condo address
+      <br>• Destination: <em>1 Tampines St 73</em>
+      <br>• Mode: Transit · Departure 7:00 AM weekday
+      <br>And separately origin → <em>Telok Ayer MRT</em> · Transit · 8:00 AM weekday.
+    </p>
+  </div>
+
+  <!-- NOTES PANEL -->
+  <div class="panel" id="panel-notes">
+    <p style="font-size:13px; color:#475569;">Free-form notes — viewings booked, agent details, things to check on-site, neighbourhood impressions. Saved locally.</p>
+    <textarea class="notes-area" id="notes" placeholder="e.g.&#10;- 17 May: spoke to Calvin Aw at Aquarius, has 1206 sqft unit, asking S$6k, available 1 Aug&#10;- Things to confirm on viewing: town gas working, no aircon leaks, helper's room window&#10;- Bedok Reservoir park condition — daughter wants to bike there&#10;"></textarea>
+  </div>
+
+</div>
+
+<!-- ADD LISTING MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">Add listing</h3>
+    <div class="form-grid">
+      <label class="full">Listing URL
+        <input type="text" id="f-url" placeholder="https://www.propertyguru.com.sg/...">
+      </label>
+      <label>Condo
+        <select id="f-condo">
+          <option>Aquarius by the Park</option>
+          <option>The Clearwater</option>
+          <option>Baywater</option>
+          <option>Waterfront Waves</option>
+          <option>Waterfront Isle</option>
+          <option>Waterfront Key</option>
+          <option>Waterfront Gold</option>
+          <option>Costa Del Sol</option>
+          <option>The Tropica</option>
+          <option>Tropical Spring</option>
+          <option>Other (type in notes)</option>
+        </select>
+      </label>
+      <label>Rent (S$/mo)
+        <input type="number" id="f-rent" placeholder="5500">
+      </label>
+      <label>Size (sqft)
+        <input type="number" id="f-size" placeholder="1400">
+      </label>
+      <label>Bedrooms
+        <input type="number" id="f-bed" value="3">
+      </label>
+      <label>Bathrooms
+        <input type="number" id="f-bath" value="2">
+      </label>
+      <label>MRT walk (min)
+        <input type="number" id="f-mrt" placeholder="6">
+      </label>
+      <label>UWC East commute (min)
+        <input type="number" id="f-school" placeholder="30">
+      </label>
+      <div class="check-row">
+        <label><input type="checkbox" id="f-helper"> Helper's room + WC</label>
+        <label><input type="checkbox" id="f-gas"> Piped town gas</label>
+        <label><input type="checkbox" id="f-ac"> Aircon included</label>
+        <label><input type="checkbox" id="f-fans"> Ceiling fans</label>
+        <label><input type="checkbox" id="f-balcony"> Balcony</label>
+        <label><input type="checkbox" id="f-view"> Reservoir/water view</label>
+        <label><input type="checkbox" id="f-unfurn"> Unfurnished/partially</label>
+        <label><input type="checkbox" id="f-washer"> Washing machine included</label>
+        <label><input type="checkbox" id="f-curtains"> Curtains included</label>
+      </div>
+      <label>Status
+        <select id="f-status">
+          <option>Interested</option>
+          <option>Contacted agent</option>
+          <option>Viewing scheduled</option>
+          <option>Viewed</option>
+          <option>Negotiating</option>
+          <option>Applied</option>
+          <option>Rejected (us)</option>
+          <option>Rejected (landlord)</option>
+        </select>
+      </label>
+      <label>Agent / contact
+        <input type="text" id="f-agent" placeholder="Name + phone">
+      </label>
+      <label class="full">Notes
+        <textarea id="f-notes" placeholder="View, condition, agent comments..."></textarea>
+      </label>
+    </div>
+    <div class="toolbar" style="margin-top:14px; justify-content:flex-end;">
+      <button id="cancel-modal">Cancel</button>
+      <button class="primary" id="save-listing">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = "sg_rental_tracker_v1";
+  const NOTES_KEY = "sg_rental_notes_v1";
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { listings: [] }; }
+    catch(e) { return { listings: [] }; }
+  }
+  function save(data) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  // Tabs
+  document.querySelectorAll(".tab").forEach(t => {
+    t.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach(x => x.classList.remove("active"));
+      t.classList.add("active");
+      document.getElementById("panel-" + t.dataset.tab).classList.add("active");
+    });
+  });
+
+  // Notes persistence
+  const notesEl = document.getElementById("notes");
+  notesEl.value = localStorage.getItem(NOTES_KEY) || "";
+  notesEl.addEventListener("input", () => localStorage.setItem(NOTES_KEY, notesEl.value));
+
+  // Scoring
+  function scoreListing(l) {
+    let s = 0;
+    // Rent: 25 max
+    if (l.rent && l.rent <= 5000) s += 25;
+    else if (l.rent && l.rent <= 5500) s += 20;
+    else if (l.rent && l.rent <= 6000) s += 12;
+    else if (l.rent && l.rent <= 6500) s += 4;
+    // Size: 15
+    if (l.size && l.size >= 1350) s += 15;
+    else if (l.size && l.size >= 1250) s += 8;
+    // Helper room: 15
+    if (l.helper) s += 15;
+    // MRT walk: 10
+    if (l.mrt_min !== undefined && l.mrt_min !== null && l.mrt_min !== "") {
+      const m = Number(l.mrt_min);
+      if (m <= 5) s += 10;
+      else if (m <= 8) s += 8;
+      else if (m <= 12) s += 4;
+    }
+    // UWC commute: 10
+    if (l.school_min !== undefined && l.school_min !== null && l.school_min !== "") {
+      const m = Number(l.school_min);
+      if (m <= 25) s += 10;
+      else if (m <= 30) s += 8;
+      else if (m <= 35) s += 5;
+      else if (m <= 40) s += 2;
+    }
+    // Gas: 5
+    if (l.gas) s += 5;
+    // AC: 5
+    if (l.ac) s += 5;
+    // View: 5
+    if (l.view) s += 5;
+    // Balcony: 3
+    if (l.balcony) s += 3;
+    // Fans: 3
+    if (l.fans) s += 3;
+    // Unfurnished: 4
+    if (l.unfurnished) s += 4;
+    return s; // out of ~100
+  }
+
+  function scoreClass(s) {
+    if (s >= 75) return "high";
+    if (s >= 55) return "mid";
+    return "low";
+  }
+
+  function render() {
+    const data = load();
+    const container = document.getElementById("listings-container");
+    const statsBox = document.getElementById("stats");
+
+    // Stats
+    const total = data.listings.length;
+    const avgScore = total ? Math.round(data.listings.reduce((a, b) => a + scoreListing(b), 0) / total) : 0;
+    const viewing = data.listings.filter(l => l.status === "Viewing scheduled" || l.status === "Viewed").length;
+    const applied = data.listings.filter(l => l.status === "Applied" || l.status === "Negotiating").length;
+    statsBox.innerHTML = `
+      <div class="stat"><div class="v">${total}</div><div class="l">tracked</div></div>
+      <div class="stat"><div class="v">${avgScore}</div><div class="l">avg score</div></div>
+      <div class="stat"><div class="v">${viewing}</div><div class="l">viewings</div></div>
+      <div class="stat"><div class="v">${applied}</div><div class="l">applied / negotiating</div></div>
+    `;
+
+    if (total === 0) {
+      container.innerHTML = `<div class="empty">No listings tracked yet.<br>Paste a PropertyGuru / 99.co / SRX URL via "+ Add a listing".</div>`;
+      return;
+    }
+
+    // Sort by score
+    const sorted = [...data.listings].sort((a, b) => scoreListing(b) - scoreListing(a));
+
+    container.innerHTML = `<div class="listings-grid">${sorted.map(l => {
+      const s = scoreListing(l);
+      const cls = scoreClass(s);
+      const pills = [];
+      if (l.helper) pills.push('<span class="pill ok">helper</span>');
+      if (l.gas) pills.push('<span class="pill ok">gas</span>');
+      if (l.ac) pills.push('<span class="pill ok">AC</span>');
+      if (l.view) pills.push('<span class="pill info">view</span>');
+      if (l.balcony) pills.push('<span class="pill neutral">balcony</span>');
+      if (l.unfurnished) pills.push('<span class="pill neutral">unfurn</span>');
+      return `
+        <div class="listing-card">
+          <div class="top">
+            <div>
+              <div class="condo-name">${l.condo || "—"}</div>
+              <div class="meta">${l.size ? l.size + " sqft" : "?"} · ${l.bed || 3}BR/${l.bath || 2}BA · S$${l.rent || "?"}/mo</div>
+            </div>
+            <div class="score ${cls}">${s}</div>
+          </div>
+          <div class="meta">MRT: ${l.mrt_min || "?"} min · UWC: ${l.school_min || "?"} min · ${l.status || "?"}</div>
+          <div class="pills-row">${pills.join("")}</div>
+          ${l.agent ? `<div class="meta">👤 ${l.agent}</div>` : ""}
+          ${l.notes ? `<div class="notes">${l.notes.replace(/</g, "&lt;")}</div>` : ""}
+          <div class="actions">
+            ${l.url ? `<a href="${l.url}" target="_blank" rel="noopener"><button>Open listing</button></a>` : ""}
+            <button data-edit="${l.id}">Edit</button>
+            <button class="danger" data-del="${l.id}">Delete</button>
+          </div>
+        </div>
+      `;
+    }).join("")}</div>`;
+
+    container.querySelectorAll("[data-del]").forEach(b => {
+      b.addEventListener("click", () => {
+        if (confirm("Delete this listing?")) {
+          const d = load();
+          d.listings = d.listings.filter(x => x.id !== b.dataset.del);
+          save(d);
+          render();
+        }
+      });
+    });
+    container.querySelectorAll("[data-edit]").forEach(b => {
+      b.addEventListener("click", () => openModal(b.dataset.edit));
+    });
+  }
+
+  // Modal
+  const modal = document.getElementById("modal");
+  let editingId = null;
+
+  function openModal(id) {
+    editingId = id || null;
+    const f = id ? load().listings.find(x => x.id === id) : null;
+    document.getElementById("modal-title").textContent = f ? "Edit listing" : "Add listing";
+    document.getElementById("f-url").value = f?.url || "";
+    document.getElementById("f-condo").value = f?.condo || "Aquarius by the Park";
+    document.getElementById("f-rent").value = f?.rent || "";
+    document.getElementById("f-size").value = f?.size || "";
+    document.getElementById("f-bed").value = f?.bed || 3;
+    document.getElementById("f-bath").value = f?.bath || 2;
+    document.getElementById("f-mrt").value = f?.mrt_min || "";
+    document.getElementById("f-school").value = f?.school_min || "";
+    document.getElementById("f-helper").checked = !!f?.helper;
+    document.getElementById("f-gas").checked = !!f?.gas;
+    document.getElementById("f-ac").checked = !!f?.ac;
+    document.getElementById("f-fans").checked = !!f?.fans;
+    document.getElementById("f-balcony").checked = !!f?.balcony;
+    document.getElementById("f-view").checked = !!f?.view;
+    document.getElementById("f-unfurn").checked = !!f?.unfurnished;
+    document.getElementById("f-washer").checked = !!f?.washer;
+    document.getElementById("f-curtains").checked = !!f?.curtains;
+    document.getElementById("f-status").value = f?.status || "Interested";
+    document.getElementById("f-agent").value = f?.agent || "";
+    document.getElementById("f-notes").value = f?.notes || "";
+    modal.classList.add("show");
+  }
+  function closeModal() { modal.classList.remove("show"); editingId = null; }
+
+  document.getElementById("add-listing").addEventListener("click", () => openModal(null));
+  document.getElementById("cancel-modal").addEventListener("click", closeModal);
+  modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
+
+  document.getElementById("save-listing").addEventListener("click", () => {
+    const obj = {
+      id: editingId || ("l_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7)),
+      url: document.getElementById("f-url").value.trim(),
+      condo: document.getElementById("f-condo").value,
+      rent: Number(document.getElementById("f-rent").value) || null,
+      size: Number(document.getElementById("f-size").value) || null,
+      bed: Number(document.getElementById("f-bed").value) || 3,
+      bath: Number(document.getElementById("f-bath").value) || 2,
+      mrt_min: document.getElementById("f-mrt").value,
+      school_min: document.getElementById("f-school").value,
+      helper: document.getElementById("f-helper").checked,
+      gas: document.getElementById("f-gas").checked,
+      ac: document.getElementById("f-ac").checked,
+      fans: document.getElementById("f-fans").checked,
+      balcony: document.getElementById("f-balcony").checked,
+      view: document.getElementById("f-view").checked,
+      unfurnished: document.getElementById("f-unfurn").checked,
+      washer: document.getElementById("f-washer").checked,
+      curtains: document.getElementById("f-curtains").checked,
+      status: document.getElementById("f-status").value,
+      agent: document.getElementById("f-agent").value.trim(),
+      notes: document.getElementById("f-notes").value.trim(),
+      added: new Date().toISOString().slice(0, 10)
+    };
+    const data = load();
+    if (editingId) {
+      data.listings = data.listings.map(x => x.id === editingId ? obj : x);
+    } else {
+      data.listings.push(obj);
+    }
+    save(data);
+    closeModal();
+    render();
+  });
+
+  // Export
+  document.getElementById("export").addEventListener("click", () => {
+    const data = load();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "sg-rental-listings-" + new Date().toISOString().slice(0, 10) + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  // Import
+  document.getElementById("import").addEventListener("click", () => document.getElementById("import-file").click());
+  document.getElementById("import-file").addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        if (!imported.listings) throw new Error("Bad file format");
+        const current = load();
+        const merged = { listings: [...current.listings] };
+        imported.listings.forEach(l => {
+          if (!merged.listings.find(x => x.id === l.id)) merged.listings.push(l);
+        });
+        save(merged);
+        render();
+        alert("Imported " + imported.listings.length + " listings (duplicates skipped by ID).");
+      } catch (err) {
+        alert("Could not import: " + err.message);
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  // Clear all
+  document.getElementById("clear-all").addEventListener("click", () => {
+    if (confirm("Delete ALL tracked listings? This cannot be undone.")) {
+      save({ listings: [] });
+      render();
+    }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
